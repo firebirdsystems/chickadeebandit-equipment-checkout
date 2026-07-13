@@ -1,0 +1,38 @@
+{
+  "id": "equipment-checkout",
+  "name": "Equipment Checkout",
+  "version": "1.0.0",
+  "description": "The club's gear closet — an inventory of org-owned equipment, who has what checked out, due dates, and the full lending history per item.",
+  "entrypoint": "index.html",
+  "runtime": "static",
+  "category": "organization",
+  "tags": ["equipment", "inventory", "checkout", "lending", "club", "gear"],
+  "icon": "🧰",
+  "data_access": {
+    "reads": ["family.members"],
+    "writes": []
+  },
+  "permissions": {
+    "default_audience": "everyone",
+    "requires_approval": false
+  },
+  "storage": "db",
+  "db_plaintext_columns": ["due_date"],
+  "row_policies": {
+    "equipment": {
+      "kind": "adult_writable"
+    },
+    "checkouts": {
+      "kind": "adult_writable"
+    }
+  },
+  "nav": { "label": "Gear" },
+  "resource_limits": {
+    "max_db_bytes": 52428800
+  },
+  "ai_access": {
+    "allowed": true,
+    "mode": "read",
+    "db_exports": ["equipment", "open_checkouts"]
+  }
+}

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equipment Checkout</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: var(--hub-bg, #f9fafb);
+      --surface: var(--hub-surface, #ffffff);
+      --border: var(--hub-border, #e5e7eb);
+      --border-mid: var(--hub-border, #d1d5db);
+      --text: var(--hub-text, #111827);
+      --muted: var(--hub-text-muted, #6b7280);
+      --accent: var(--hub-primary, #111827);
+      --accent-hover: var(--hub-primary-hover, #374151);
+      --accent-fg: var(--hub-primary-fg, #ffffff);
+      --radius: var(--hub-radius, 10px);
+      --green: #047857; --green-soft: #d1fae5;
+      --amber: #b45309; --amber-soft: #fef3c7;
+      --red: #b91c1c; --red-soft: #fee2e2;
+      --blue: #1d4ed8; --blue-soft: #dbeafe;
+      --shadow: 0 1px 3px rgba(15, 23, 42, .07);
+    }
+    body {
+      min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: var(--hub-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: var(--hub-font-size, 15px); line-height: 1.5;
+    }
+    .app { max-width: 700px; margin: 0 auto; padding: 16px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    h1 { font-size: 1.35rem; line-height: 1.2; }
+    h2 { font-size: .95rem; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: .78rem; }
+    .stack { display: grid; gap: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid transparent; border-radius: 8px; padding: 8px 12px;
+      font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer;
+      min-height: 38px; background: var(--accent); color: var(--accent-fg);
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: .48; cursor: default; }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-mid); }
+    .btn-ghost:hover { background: rgba(127,127,127,.08); }
+    .btn-danger { background: var(--red-soft); color: var(--red); }
+    .btn-sm { min-height: 31px; padding: 5px 10px; font-size: .78rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
+    .row {
+      display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .row.dim { opacity: .55; }
+    .row-icon { font-size: 1.15rem; width: 30px; text-align: center; flex-shrink: 0; }
+    .row-body { flex: 1; min-width: 0; }
+    .row-title { font-weight: 750; font-size: .92rem; }
+    .row-meta { color: var(--muted); font-size: .78rem; }
+    .row-side { flex-shrink: 0; text-align: right; display: grid; gap: 3px; justify-items: end; }
+    .pill {
+      display: inline-flex; align-items: center; min-height: 20px; padding: 1px 8px;
+      border-radius: 999px; white-space: nowrap; background: #f1f5f9; color: var(--muted);
+      font-size: .72rem; font-weight: 800;
+    }
+    .pill.available { background: var(--green-soft); color: var(--green); }
+    .pill.checked_out { background: var(--blue-soft); color: var(--blue); }
+    .pill.repair { background: var(--amber-soft); color: var(--amber); }
+    .pill.overdue { background: var(--red-soft); color: var(--red); }
+    .edit-link { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: .76rem; font-weight: 700; padding: 2px 4px; }
+    .edit-link:hover { color: var(--text); text-decoration: underline; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 2px 8px; }
+    .history { margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 6px; }
+    .history-line { font-size: .8rem; color: var(--muted); padding: 2px 0; }
+    .empty { color: var(--muted); text-align: center; padding: 30px 16px; }
+    .error { background: var(--red-soft); color: var(--red); padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; font-size: .86rem; }
+    input, select, textarea {
+      width: 100%; border: 1.5px solid var(--border-mid); border-radius: 8px;
+      padding: 9px 11px; font: inherit; background: var(--surface); color: var(--text);
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.42); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal { background: var(--surface); border-radius: 14px; padding: 22px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.25); max-height: 92vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.05rem; margin-bottom: 16px; }
+    .form { display: grid; gap: 12px; }
+    .field { display: grid; gap: 5px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 800; }
+    textarea { min-height: 56px; resize: vertical; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end; }
+    .modal-left { margin-right: auto; }
+    @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+  <base href="/run/equipment-checkout/">
+</head>
+<body>
+<div class="app">
+  <div id="root" class="empty">Loading…</div>
+</div>
+
+<script type="module">
+import { esc, isAdult, hubConfirm } from "/hub-sdk.js";
+import {
+  CATEGORIES, EQUIPMENT_STATUSES, categoryMeta, openCheckout, openCheckouts,
+  historyFor, isOverdue, dueLabel, sortedEquipment, effectiveStatus,
+} from "./logic.js";
+
+const CONTEXT = window.__CONTEXT_URL ?? "";
+const DB = window.__DB_URL ?? "";
+const HUB_MEMBER = window.__CURRENT_MEMBER ?? null;
+
+let members = [];
+let memberMap = new Map();
+let me = null;
+let equipment = [];
+let checkouts = [];
+let expandedId = null;
+let error = "";
+let modalEl = null;
+
+function nowIso() { return new Date().toISOString(); }
+function canManage() { return !!me && isAdult(me); }
+function memberName(id) { return memberMap.get(id)?.name ?? "Former member"; }
+
+/* ── DB helper ─────────────────────────────────────────────────────────────── */
+async function db(sql, params = []) {
+  if (!DB) return { rows: [] };
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, params }),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+/* ── Loading ───────────────────────────────────────────────────────────────── */
+async function loadMembers() {
+  if (!CONTEXT) {
+    members = [
+      { id: "demo-1", name: "Alex (quartermaster)", role: "adult" },
+      { id: "demo-2", name: "Jordan", role: "adult" },
+      { id: "demo-3", name: "Casey", role: "child" },
+    ];
+  } else {
+    try {
+      const res = await fetch(`${CONTEXT}?keys=family.members`);
+      members = ((await res.json())["family.members"]) ?? [];
+    } catch { members = []; }
+  }
+  memberMap = new Map(members.map((m) => [m.id, m]));
+  me = HUB_MEMBER ?? members[0] ?? { id: "guest", name: "Guest", role: "adult" };
+}
+
+async function loadData() {
+  if (!DB) {
+    equipment = [
+      { id: "eq1", name: "6-person tent #1", category: "camping", identifier: "T-001", condition: "good", status: "checked_out", notes: "", created_by: "demo-1", created_at: nowIso(), updated_at: nowIso() },
+      { id: "eq2", name: "Camp stove", category: "camping", identifier: "S-002", condition: "fair", status: "available", notes: "", created_by: "demo-1", created_at: nowIso(), updated_at: nowIso() },
+      { id: "eq3", name: "Projector", category: "av", identifier: "AV-01", condition: "good", status: "available", notes: "", created_by: "demo-1", created_at: nowIso(), updated_at: nowIso() },
+    ];
+    checkouts = [
+      { id: "c1", equipment_id: "eq1", member_id: "demo-2", due_date: "2026-07-10", checked_out_at: "2026-07-01T10:00:00Z", returned_at: null, notes: "", recorded_by: "demo-1", created_at: nowIso() },
+    ];
+    return;
+  }
+  const [e, c] = await Promise.all([
+    db("SELECT id, name, category, identifier, condition, status, notes, created_by, created_at, updated_at FROM app_equipment_checkout__equipment ORDER BY created_at LIMIT 500"),
+    db("SELECT id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at FROM app_equipment_checkout__checkouts ORDER BY checked_out_at DESC LIMIT 2000"),
+  ]);
+  equipment = e.rows ?? [];
+  checkouts = c.rows ?? [];
+}
+
+async function refresh() {
+  error = "";
+  try {
+    await Promise.all([loadMembers(), loadData()]);
+    render();
+  } catch (e) { error = e.message; render(); }
+}
+
+function showError(msg) { error = msg; render(); }
+
+/* ── Mutations ─────────────────────────────────────────────────────────────── */
+async function saveEquipment(fields, existingId) {
+  const now = nowIso();
+  if (existingId) {
+    const idx = equipment.findIndex((e) => e.id === existingId);
+    const prev = idx !== -1 ? equipment[idx] : null;
+    if (idx !== -1) equipment[idx] = { ...equipment[idx], ...fields, updated_at: now };
+    closeModal(); render();
+    try {
+      await db("UPDATE app_equipment_checkout__equipment SET name=?, category=?, identifier=?, condition=?, status=?, notes=?, updated_at=? WHERE id=?",
+        [fields.name, fields.category, fields.identifier, fields.condition, fields.status, fields.notes, now, existingId]);
+    } catch (e) { if (idx !== -1 && prev) equipment[idx] = prev; showError(e.message); }
+  } else {
+    const row = { id: crypto.randomUUID(), ...fields, created_by: me.id, created_at: now, updated_at: now };
+    equipment = [...equipment, row];
+    closeModal(); render();
+    try {
+      await db("INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, notes, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        [row.id, row.name, row.category, row.identifier, row.condition, row.status, row.notes, row.created_by, now, now]);
+    } catch (e) { equipment = equipment.filter((x) => x.id !== row.id); showError(e.message); }
+  }
+}
+
+async function deleteEquipment(id) {
+  const ok = await hubConfirm({ message: "Delete this item?", description: "Its checkout history goes with it. Prefer marking it Retired.", confirmLabel: "Delete", destructive: true });
+  if (!ok) return;
+  const prev = { equipment, checkouts };
+  equipment = equipment.filter((e) => e.id !== id);
+  checkouts = checkouts.filter((c) => c.equipment_id !== id);
+  closeModal(); render();
+  try { await db("DELETE FROM app_equipment_checkout__equipment WHERE id=?", [id]); }
+  catch (e) { ({ equipment, checkouts } = prev); showError(e.message); }
+}
+
+async function checkOut(item, memberId, dueDate, notes) {
+  const now = nowIso();
+  const row = { id: crypto.randomUUID(), equipment_id: item.id, member_id: memberId, due_date: dueDate, checked_out_at: now, returned_at: null, notes, recorded_by: me.id, created_at: now };
+  const idx = equipment.findIndex((e) => e.id === item.id);
+  const prevStatus = equipment[idx]?.status;
+  checkouts = [row, ...checkouts];
+  if (idx !== -1) equipment[idx] = { ...equipment[idx], status: "checked_out" };
+  closeModal(); render();
+  try {
+    await db("INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at) VALUES (?,?,?,?,?,NULL,?,?,?)",
+      [row.id, row.equipment_id, row.member_id, row.due_date, row.checked_out_at, row.notes, row.recorded_by, row.created_at]);
+    await db("UPDATE app_equipment_checkout__equipment SET status='checked_out', updated_at=? WHERE id=?", [now, item.id]).catch(() => {});
+  } catch (e) {
+    checkouts = checkouts.filter((c) => c.id !== row.id);
+    if (idx !== -1) equipment[idx] = { ...equipment[idx], status: prevStatus };
+    showError(e.message);
+  }
+}
+
+async function markReturned(checkout) {
+  const now = nowIso();
+  const cIdx = checkouts.findIndex((c) => c.id === checkout.id);
+  const eIdx = equipment.findIndex((e) => e.id === checkout.equipment_id);
+  const prevC = cIdx !== -1 ? { ...checkouts[cIdx] } : null;
+  const prevStatus = equipment[eIdx]?.status;
+  if (cIdx !== -1) checkouts[cIdx] = { ...checkouts[cIdx], returned_at: now };
+  if (eIdx !== -1) equipment[eIdx] = { ...equipment[eIdx], status: "available" };
+  render();
+  try {
+    await db("UPDATE app_equipment_checkout__checkouts SET returned_at=? WHERE id=?", [now, checkout.id]);
+    await db("UPDATE app_equipment_checkout__equipment SET status='available', updated_at=? WHERE id=?", [now, checkout.equipment_id]).catch(() => {});
+  } catch (e) {
+    if (cIdx !== -1 && prevC) checkouts[cIdx] = prevC;
+    if (eIdx !== -1) equipment[eIdx] = { ...equipment[eIdx], status: prevStatus };
+    showError(e.message);
+  }
+}
+
+/* ── Rendering ─────────────────────────────────────────────────────────────── */
+function statusPill(item) {
+  const st = effectiveStatus(item, checkouts);
+  const open = item._open ?? openCheckout(checkouts, item.id);
+  if (st === "checked_out" && open && isOverdue(open)) {
+    return `<span class="pill overdue">${esc(dueLabel(open.due_date))}</span>`;
+  }
+  const label = EQUIPMENT_STATUSES.find((s) => s.value === st)?.label ?? st;
+  return `<span class="pill ${esc(st)}">${esc(label)}</span>`;
+}
+
+function renderItem(item) {
+  const open = item._open;
+  const cat = categoryMeta(item.category);
+  const expanded = expandedId === item.id;
+  const history = expanded ? historyFor(checkouts, item.id) : [];
+  return `
+    <div class="row ${item.status === "retired" ? "dim" : ""}">
+      <div class="row-icon" aria-hidden="true">${cat.icon}</div>
+      <div class="row-body">
+        <div class="row-title">${esc(item.name)}${item.identifier ? ` <span class="muted tiny">#${esc(item.identifier)}</span>` : ""}</div>
+        <div class="row-meta">
+          ${esc(cat.label)} · ${esc(item.condition)}
+          ${open ? ` · with <strong>${esc(memberName(open.member_id))}</strong>${open.due_date ? ` · ${esc(dueLabel(open.due_date))}` : ""}` : ""}
+          ${item.notes ? ` · ${esc(item.notes)}` : ""}
+        </div>
+        ${expanded ? `
+          <div class="history">
+            ${history.length ? history.slice(0, 8).map((c) => `
+              <div class="history-line">
+                ${esc(memberName(c.member_id))} · out ${esc(String(c.checked_out_at).slice(0, 10))}
+                ${c.returned_at ? `→ back ${esc(String(c.returned_at).slice(0, 10))}` : "→ still out"}
+              </div>`).join("") : `<div class="history-line">Never checked out.</div>`}
+          </div>` : ""}
+      </div>
+      <div class="row-side">
+        ${statusPill(item)}
+        <span>
+          <button class="edit-link" data-expand="${esc(item.id)}">${expanded ? "Hide" : "History"}</button>
+          ${canManage() ? (open
+            ? `<button class="edit-link" data-return="${esc(open.id)}">Return</button>`
+            : effectiveStatus(item, checkouts) === "available" ? `<button class="edit-link" data-checkout="${esc(item.id)}">Check out</button>` : "")
+          : ""}
+          ${canManage() ? `<button class="edit-link" data-edit="${esc(item.id)}">Edit</button>` : ""}
+        </span>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const root = document.getElementById("root");
+  root.className = "app-root";
+  const list = sortedEquipment(equipment, checkouts);
+  const out = openCheckouts(checkouts);
+  const overdue = out.filter((c) => isOverdue(c));
+  root.innerHTML = `
+    <div class="topbar">
+      <div>
+        <h1>🧰 Equipment Checkout</h1>
+        <p class="muted tiny">${equipment.length} item${equipment.length === 1 ? "" : "s"} · ${out.length} out${overdue.length ? ` · <span style="color:var(--red)">${overdue.length} overdue</span>` : ""}</p>
+      </div>
+      ${canManage() ? `<button class="btn" data-add>+ Item</button>` : ""}
+    </div>
+    ${error ? `<div class="error">${esc(error)}</div>` : ""}
+    ${list.length
+      ? `<div class="stack">${list.map(renderItem).join("")}</div>`
+      : `<div class="card empty">The gear closet is empty${canManage() ? " — add your first item" : ""}.</div>`}
+    ${!canManage() && list.length ? `<p class="muted tiny" style="margin-top:10px">Leaders (adults) record checkouts and returns.</p>` : ""}
+  `;
+}
+
+/* ── Modals ────────────────────────────────────────────────────────────────── */
+function openModal(html) {
+  closeModal();
+  modalEl = document.createElement("div");
+  modalEl.className = "overlay";
+  modalEl.innerHTML = `<div class="modal">${html}</div>`;
+  modalEl.addEventListener("click", (e) => { if (e.target === modalEl) closeModal(); });
+  document.body.appendChild(modalEl);
+}
+function closeModal() { modalEl?.remove(); modalEl = null; }
+
+function openEquipmentEditor(existing) {
+  const it = existing ?? null;
+  const catOptions = CATEGORIES.map((c) => `<option value="${c.value}" ${it?.category === c.value ? "selected" : ""}>${c.icon} ${c.label}</option>`).join("");
+  const condOptions = ["good", "fair", "needs-repair"].map((c) => `<option value="${c}" ${(it?.condition ?? "good") === c ? "selected" : ""}>${c}</option>`).join("");
+  const statusOptions = EQUIPMENT_STATUSES.map((s) => `<option value="${s.value}" ${(it?.status ?? "available") === s.value ? "selected" : ""}>${s.label}</option>`).join("");
+  openModal(`
+    <h2>${it ? "Edit item" : "Add gear"}</h2>
+    <form class="form" id="equipment-form">
+      <div class="field"><label for="g-name">Name</label><input id="g-name" data-autofocus value="${esc(it?.name ?? "")}" placeholder="6-person tent #1" required /></div>
+      <div class="grid2">
+        <div class="field"><label for="g-cat">Category</label><select id="g-cat">${catOptions}</select></div>
+        <div class="field"><label for="g-id">Asset tag / serial</label><input id="g-id" value="${esc(it?.identifier ?? "")}" /></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="g-cond">Condition</label><select id="g-cond">${condOptions}</select></div>
+        <div class="field"><label for="g-status">Status</label><select id="g-status">${statusOptions}</select></div>
+      </div>
+      <div class="field"><label for="g-notes">Notes</label><textarea id="g-notes">${esc(it?.notes ?? "")}</textarea></div>
+      <div class="modal-actions">
+        ${it ? `<button type="button" class="btn btn-danger modal-left" data-delete="${esc(it.id)}">Delete</button>` : ""}
+        <button type="button" class="btn btn-ghost" data-cancel>Cancel</button>
+        <button type="submit" class="btn">${it ? "Save" : "Add"}</button>
+      </div>
+    </form>`);
+  modalEl.querySelector("[data-autofocus]")?.focus();
+  modalEl.querySelector("#equipment-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("g-name").value.trim();
+    if (!name) { document.getElementById("g-name").focus(); return; }
+    const btn = modalEl?.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+    saveEquipment({
+      name,
+      category: document.getElementById("g-cat").value,
+      identifier: document.getElementById("g-id").value.trim(),
+      condition: document.getElementById("g-cond").value,
+      status: document.getElementById("g-status").value,
+      notes: document.getElementById("g-notes").value.trim(),
+    }, it?.id ?? null).catch((err) => showError(err.message));
+  });
+}
+
+function openCheckoutEditor(item) {
+  const memberOptions = members.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
+  openModal(`
+    <h2>Check out: ${esc(item.name)}</h2>
+    <form class="form" id="checkout-form">
+      <div class="field"><label for="c-member">To</label><select id="c-member">${memberOptions}</select></div>
+      <div class="field"><label for="c-due">Due back <span class="muted" style="text-transform:none">(optional)</span></label><input id="c-due" type="date" /></div>
+      <div class="field"><label for="c-notes">Notes</label><textarea id="c-notes"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-cancel>Cancel</button>
+        <button type="submit" class="btn">Check out</button>
+      </div>
+    </form>`);
+  modalEl.querySelector("#checkout-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const memberId = document.getElementById("c-member").value;
+    if (!memberId) return;
+    const btn = modalEl?.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = "Recording…"; }
+    checkOut(item, memberId, document.getElementById("c-due").value, document.getElementById("c-notes").value.trim())
+      .catch((err) => showError(err.message));
+  });
+}
+
+/* ── Events ────────────────────────────────────────────────────────────────── */
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  if (t.hasAttribute("data-add")) { openEquipmentEditor(null); return; }
+  if (t.hasAttribute("data-edit")) { openEquipmentEditor(equipment.find((x) => x.id === t.getAttribute("data-edit"))); return; }
+  if (t.hasAttribute("data-cancel")) { closeModal(); return; }
+  if (t.hasAttribute("data-delete")) { deleteEquipment(t.getAttribute("data-delete")); return; }
+  if (t.hasAttribute("data-expand")) {
+    const id = t.getAttribute("data-expand");
+    expandedId = expandedId === id ? null : id;
+    render();
+    return;
+  }
+  if (t.hasAttribute("data-checkout")) {
+    const item = equipment.find((x) => x.id === t.getAttribute("data-checkout"));
+    if (item) openCheckoutEditor(item);
+    return;
+  }
+  if (t.hasAttribute("data-return")) {
+    const checkout = checkouts.find((c) => c.id === t.getAttribute("data-return"));
+    if (checkout) markReturned(checkout).catch((err) => showError(err.message));
+  }
+});
+
+refresh();
+</script>
+</body>
+</html>
