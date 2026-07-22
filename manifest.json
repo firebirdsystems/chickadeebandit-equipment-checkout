@@ -1,5 +1,6 @@
 {
   "id": "equipment-checkout",
+  "contexts": ["household", "shared_space"],
   "name": "Equipment Checkout",
   "version": "1.0.0",
   "description": "The club's gear closet — an inventory of org-owned equipment, who has what checked out, due dates, and the full lending history per item.",
