@@ -35,6 +35,21 @@
     ]
   },
   "nav": { "label": "Gear" },
+  "agenda": {
+    "kind": "task",
+    "label": "Gear due back",
+    "source": {
+      "kind": "sql",
+      "query": "SELECT c.id AS id, e.name AS title, NULLIF(e.identifier, '') AS subtitle, c.due_date AS when_at, c.member_id AS member_id, 0 AS done FROM app_equipment_checkout__checkouts c JOIN app_equipment_checkout__equipment e ON e.id = c.equipment_id WHERE c.returned_at IS NULL AND c.due_date = :today ORDER BY c.checked_out_at LIMIT 20"
+    }
+  },
+  "glance": {
+    "source": {
+      "kind": "sql",
+      "query": "SELECT COUNT(*) AS n FROM app_equipment_checkout__checkouts WHERE returned_at IS NULL AND due_date <> '' AND due_date < :today LIMIT 1"
+    },
+    "display": { "template": "badge", "count": "n", "label": "items overdue", "severity": "warn" }
+  },
   "resource_limits": {
     "max_db_bytes": 52428800
   },
