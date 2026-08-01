@@ -95,3 +95,13 @@ export function effectiveStatus(item, checkouts) {
   if (item.status === "retired" || item.status === "repair") return item.status;
   return openCheckout(checkouts, item.id) ? "checked_out" : "available";
 }
+
+/**
+ * Fields the in-app search matches against (see hub-sdk `searchMatch`).
+ * The asset tag / identifier is searchable because that is what is
+ * physically written on the item — the fastest way to look a thing up
+ * is to read its label.
+ */
+export function searchableFields(item) {
+  return [item.name, item.category, item.identifier, item.notes, item.condition];
+}

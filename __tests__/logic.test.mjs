@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   categoryMeta, openCheckout, openCheckouts, historyFor, daysUntilDue,
-  isOverdue, dueLabel, sortedEquipment, effectiveStatus,
+  isOverdue, dueLabel, sortedEquipment, effectiveStatus, searchableFields,
 } from "../src/logic.js";
 
 const FROM = new Date(2026, 6, 12, 9, 0, 0); // July 12, 2026 local
@@ -64,4 +64,15 @@ describe("sortedEquipment / effectiveStatus", () => {
 
 describe("categoryMeta", () => {
   it("falls back to other", () => expect(categoryMeta("bogus").value).toBe("other"));
+});
+
+describe("searchableFields", () => {
+  it("matches on the asset identifier written on the item itself", () => {
+    const fields = searchableFields({
+      name: "Folding table", category: "furniture", identifier: "TBL-014",
+      notes: "wobbly leg", condition: "fair",
+    });
+    expect(fields).toContain("TBL-014");
+    expect(fields).toContain("wobbly leg");
+  });
 });
