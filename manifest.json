@@ -27,6 +27,13 @@
       "kind": "adult_writable"
     }
   },
+  "member_references": {
+    "equipment": { "column": "created_by", "on_removed": "keep" },
+    "checkouts": [
+      { "column": "member_id", "on_removed": "keep" },
+      { "column": "recorded_by", "on_removed": "keep" }
+    ]
+  },
   "nav": { "label": "Gear" },
   "resource_limits": {
     "max_db_bytes": 52428800
