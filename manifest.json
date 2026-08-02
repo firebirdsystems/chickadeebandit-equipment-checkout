@@ -18,6 +18,55 @@
     "requires_approval": false
   },
   "storage": "db",
+  "automation_actions": {
+    "add_equipment": {
+      "title": "Add equipment to the inventory",
+      "description": "Track a new item when another app's event fires — gear bought, donated, or returned to service.",
+      "params": {
+        "created_by": {
+          "type": "member",
+          "label": "Added by",
+          "required": true
+        },
+        "name": {
+          "type": "text",
+          "label": "What it is",
+          "required": true
+        },
+        "category": {
+          "type": "text",
+          "label": "Category",
+          "default": "other",
+          "options": ["camping", "sports", "av", "kitchen", "tools", "other"]
+        },
+        "notes": {
+          "type": "text",
+          "label": "Notes",
+          "default": ""
+        }
+      },
+      "dedupe": {
+        "table": "equipment",
+        "column": "source_event_id"
+      },
+      "steps": [
+        {
+          "op": "insert",
+          "table": "equipment",
+          "values": {
+            "id": "$uuid",
+            "name": ":name",
+            "category": ":category",
+            "notes": ":notes",
+            "created_by": ":created_by",
+            "created_at": "$now",
+            "updated_at": "$now",
+            "source_event_id": "$event_id"
+          }
+        }
+      ]
+    }
+  },
   "db_plaintext_columns": ["due_date"],
   "row_policies": {
     "equipment": {
@@ -33,6 +82,11 @@
       { "column": "member_id", "on_removed": "keep" },
       { "column": "recorded_by", "on_removed": "keep" }
     ]
+  },
+  "publishes": ["equipment.checked_out", "equipment.returned"],
+  "publish_acls": {
+    "equipment.checked_out": { "require_role": "member" },
+    "equipment.returned": { "require_role": "member" }
   },
   "nav": { "label": "Gear" },
   "agenda": {

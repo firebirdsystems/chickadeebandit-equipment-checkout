@@ -116,6 +116,22 @@ const CONTEXT = window.__CONTEXT_URL ?? "";
 const DB = window.__DB_URL ?? "";
 const HUB_MEMBER = window.__CURRENT_MEMBER ?? null;
 
+const EVENTS = window.__EVENTS_URL ?? "";
+
+async function publishEvent(type, subjectId, payload = {}) {
+  if (!EVENTS) return;
+  try {
+    await fetch(EVENTS, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, subject_id: subjectId, payload }),
+    });
+  } catch {
+    // Best-effort: the row is already written, so a failed publish is not fatal.
+  }
+}
+
+
 let members = [];
 let memberMap = new Map();
 let me = null;
@@ -237,6 +253,11 @@ async function checkOut(item, memberId, dueDate, notes) {
     await db("INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at) VALUES (?,?,?,?,?,NULL,?,?,?)",
       [row.id, row.equipment_id, row.member_id, row.due_date, row.checked_out_at, row.notes, row.recorded_by, row.created_at]);
     await db("UPDATE app_equipment_checkout__equipment SET status='checked_out', updated_at=? WHERE id=?", [now, item.id]).catch(() => {});
+    await publishEvent("equipment.checked_out", row.id, {
+      equipment_id: row.equipment_id,
+      member_id: row.member_id,
+      due_date: row.due_date,
+    });
   } catch (e) {
     checkouts = checkouts.filter((c) => c.id !== row.id);
     if (idx !== -1) equipment[idx] = { ...equipment[idx], status: prevStatus };
@@ -256,6 +277,11 @@ async function markReturned(checkout) {
   try {
     await db("UPDATE app_equipment_checkout__checkouts SET returned_at=? WHERE id=?", [now, checkout.id]);
     await db("UPDATE app_equipment_checkout__equipment SET status='available', updated_at=? WHERE id=?", [now, checkout.equipment_id]).catch(() => {});
+    await publishEvent("equipment.returned", checkout.id, {
+      equipment_id: checkout.equipment_id,
+      member_id: checkout.member_id,
+      returned_at: now,
+    });
   } catch (e) {
     if (cIdx !== -1 && prevC) checkouts[cIdx] = prevC;
     if (eIdx !== -1) equipment[eIdx] = { ...equipment[eIdx], status: prevStatus };
