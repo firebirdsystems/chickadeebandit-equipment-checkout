@@ -18,6 +18,10 @@
     "requires_approval": false
   },
   "storage": "db",
+  "preload": {
+    "equipment": {"sql": "SELECT id, name, category, identifier, condition, status, notes, created_by, created_at, updated_at FROM app_equipment_checkout__equipment ORDER BY created_at LIMIT 500"},
+    "checkouts": {"sql": "SELECT id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at FROM app_equipment_checkout__checkouts ORDER BY checked_out_at DESC LIMIT 2000"}
+  },
   "automation_actions": {
     "add_equipment": {
       "title": "Add equipment to the inventory",
