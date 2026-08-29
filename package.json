@@ -1,6 +1,6 @@
 {
   "name": "chickadeebandit-equipment-checkout",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Club gear inventory and checkout ledger app for Chickadee Bandit",
   "type": "module",
   "scripts": {
