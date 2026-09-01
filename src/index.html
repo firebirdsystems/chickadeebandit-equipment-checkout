@@ -106,7 +106,18 @@
 </div>
 
 <script type="module">
-import { esc, isAdult, hubConfirm, searchMatch } from "/hub-sdk.js";
+import { esc, isAdult, hubConfirm, searchMatch, hubToday } from "/hub-sdk.js";
+
+// The household's calendar day as a Date, for the pure helpers in logic.js.
+// Those helpers default their date parameter to `new Date()` — the VIEWER
+// DEVICE's calendar — but they compare it against dates STORED on the household
+// calendar, which is what every server-side surface (glance, kiosk, cron,
+// `:today` in declared SQL) reports. Near midnight, or for a member in another
+// timezone, the two name different days. logic.js stays pure and SDK-free, so
+// the household day is supplied here. Noon keeps a DST shift from tipping it
+// into an adjacent day.
+const hubDay = () => new Date(`${hubToday()}T12:00:00`);
+
 import {
   CATEGORIES, EQUIPMENT_STATUSES, categoryMeta, openCheckout, openCheckouts,
   historyFor, isOverdue, dueLabel, sortedEquipment, effectiveStatus, searchableFields,
@@ -293,8 +304,8 @@ async function markReturned(checkout) {
 function statusPill(item) {
   const st = effectiveStatus(item, checkouts);
   const open = item._open ?? openCheckout(checkouts, item.id);
-  if (st === "checked_out" && open && isOverdue(open)) {
-    return `<span class="pill overdue">${esc(dueLabel(open.due_date))}</span>`;
+  if (st === "checked_out" && open && isOverdue(open, hubDay())) {
+    return `<span class="pill overdue">${esc(dueLabel(open.due_date, hubDay()))}</span>`;
   }
   const label = EQUIPMENT_STATUSES.find((s) => s.value === st)?.label ?? st;
   return `<span class="pill ${esc(st)}">${esc(label)}</span>`;
@@ -312,7 +323,7 @@ function renderItem(item) {
         <div class="row-title">${esc(item.name)}${item.identifier ? ` <span class="muted tiny">#${esc(item.identifier)}</span>` : ""}</div>
         <div class="row-meta">
           ${esc(cat.label)} · ${esc(item.condition)}
-          ${open ? ` · with <strong>${esc(memberName(open.member_id))}</strong>${open.due_date ? ` · ${esc(dueLabel(open.due_date))}` : ""}` : ""}
+          ${open ? ` · with <strong>${esc(memberName(open.member_id))}</strong>${open.due_date ? ` · ${esc(dueLabel(open.due_date, hubDay()))}` : ""}` : ""}
           ${item.notes ? ` · ${esc(item.notes)}` : ""}
         </div>
         ${expanded ? `
@@ -360,7 +371,7 @@ function render() {
   root.className = "app-root";
   const list = sortedEquipment(equipment, checkouts);
   const out = openCheckouts(checkouts);
-  const overdue = out.filter((c) => isOverdue(c));
+  const overdue = out.filter((c) => isOverdue(c, hubDay()));
   root.innerHTML = `
     <div class="topbar">
       <div>
