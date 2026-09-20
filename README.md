@@ -1,5 +1,7 @@
 # Equipment Checkout
 
+A [Chickadee Bandit](https://chickadeebandit.com/app-library/equipment-checkout) app.
+
 The club's gear closet — an inventory of org-owned equipment, who has what
 checked out, due dates, and the full lending history per item.
 
