@@ -1,0 +1,90 @@
+{
+  "scenarios": [
+    {
+      "name": "every member sees the inventory and who has what, but only an adult quartermaster records checkouts",
+      "members": { "leader": "adult", "scout": "child" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at) VALUES ('eq1', 'Tent #2', 'camping', 'T-002', 'good', 'available', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{leader}}"]
+        },
+        {
+          "action": "db",
+          "as": "scout",
+          "sql": "SELECT id, status FROM app_equipment_checkout__equipment",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "eq1", "status": "available" }] }
+        },
+        {
+          "action": "db",
+          "as": "scout",
+          "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, recorded_by, created_at) VALUES ('c_self', 'eq1', ?, '2026-01-10', '2026-01-02T00:00:00Z', ?, '2026-01-02T00:00:00Z')",
+          "params": ["{{scout}}", "{{scout}}"],
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "scout",
+          "sql": "UPDATE app_equipment_checkout__equipment SET status = 'retired' WHERE id = 'eq1'",
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "leader",
+          "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, recorded_by, created_at) VALUES ('c1', 'eq1', ?, '2026-01-10', '2026-01-02T00:00:00Z', ?, '2026-01-02T00:00:00Z')",
+          "params": ["{{scout}}", "{{leader}}"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "scout",
+          "sql": "SELECT id, member_id FROM app_equipment_checkout__checkouts",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "c1" }] }
+        },
+        {
+          "action": "db",
+          "as": "leader",
+          "sql": "SELECT status FROM app_equipment_checkout__equipment WHERE id = 'eq1'",
+          "expect": { "status": 200, "rowsContain": [{ "status": "available" }] }
+        }
+      ]
+    },
+    {
+      "name": "open_checkouts lists only items still out (with or without a due date); returned loans drop off",
+      "members": { "leader": "adult", "holder": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, created_by, created_at, updated_at) VALUES ('eq1', 'Projector', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'), ('eq2', 'Canoe', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'), ('eq3', 'Stove', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{leader}}", "{{leader}}", "{{leader}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES ('c_open_nodue', 'eq1', ?, '', '2026-01-02T00:00:00Z', NULL, ?, '2026-01-02T00:00:00Z'), ('c_open_due', 'eq2', ?, '2026-01-05', '2026-01-02T00:00:00Z', NULL, ?, '2026-01-02T00:00:00Z'), ('c_returned', 'eq3', ?, '2026-01-04', '2026-01-02T00:00:00Z', '2026-01-03T00:00:00Z', ?, '2026-01-02T00:00:00Z')",
+          "params": ["{{holder}}", "{{leader}}", "{{holder}}", "{{leader}}", "{{holder}}", "{{leader}}"]
+        },
+        {
+          "action": "named",
+          "as": "leader",
+          "kind": "query",
+          "name": "open_checkouts",
+          "expect": {
+            "status": 200,
+            "rowCount": 2,
+            "rowsContain": [
+              { "id": "c_open_due", "due_date": "2026-01-05" },
+              { "id": "c_open_nodue", "due_date": "" }
+            ]
+          }
+        },
+        {
+          "action": "named",
+          "as": "leader",
+          "kind": "query",
+          "name": "equipment",
+          "expect": { "status": 200, "rowCount": 3 }
+        }
+      ]
+    }
+  ]
+}
