@@ -106,7 +106,7 @@
 </div>
 
 <script type="module">
-import { esc, isAdult, hubConfirm, searchMatch, hubToday } from "/hub-sdk.js";
+import { esc, isAdult, hubConfirm, searchMatch, hubToday, glyph, chickadee } from "/hub-sdk.js";
 
 // The household's calendar day as a Date, for the pure helpers in logic.js.
 // Those helpers default their date parameter to `new Date()` — the VIEWER
@@ -318,7 +318,7 @@ function renderItem(item) {
   const history = expanded ? historyFor(checkouts, item.id) : [];
   return `
     <div class="row ${item.status === "retired" ? "dim" : ""}">
-      <div class="row-icon" aria-hidden="true">${cat.icon}</div>
+      <div class="row-icon" aria-hidden="true">${glyph(cat.glyph)}</div>
       <div class="row-body">
         <div class="row-title">${esc(item.name)}${item.identifier ? ` <span class="muted tiny">#${esc(item.identifier)}</span>` : ""}</div>
         <div class="row-meta">
@@ -355,8 +355,8 @@ function renderEquipmentList() {
   const list = sortedEquipment(equipment, checkouts);
   const shown = searchQ ? list.filter((i) => searchMatch(searchQ, searchableFields(i))) : list;
   if (shown.length) return `<div class="stack">${shown.map(renderItem).join("")}</div>`;
-  if (searchQ) return `<div class="card empty">Nothing matches "${esc(searchQ)}".</div>`;
-  return `<div class="card empty">The gear closet is empty${canManage() ? " — add your first item" : ""}.</div>`;
+  if (searchQ) return `<div class="card empty"><div>${chickadee("searching", { size: 72 })}</div>Nothing matches "${esc(searchQ)}".</div>`;
+  return `<div class="card empty"><div>${chickadee("nest", { size: 72 })}</div>The gear closet is empty${canManage() ? " — add your first item" : ""}.</div>`;
 }
 
 document.addEventListener("input", (e) => {
@@ -375,7 +375,7 @@ function render() {
   root.innerHTML = `
     <div class="topbar">
       <div>
-        <h1>🧰 Equipment Checkout</h1>
+        <h1>${glyph("toolbox")} Equipment Checkout</h1>
         <p class="muted tiny">${equipment.length} item${equipment.length === 1 ? "" : "s"} · ${out.length} out${overdue.length ? ` · <span style="color:var(--red)">${overdue.length} overdue</span>` : ""}</p>
       </div>
       ${canManage() ? `<button class="btn" data-add>+ Item</button>` : ""}
@@ -400,7 +400,7 @@ function closeModal() { modalEl?.remove(); modalEl = null; }
 
 function openEquipmentEditor(existing) {
   const it = existing ?? null;
-  const catOptions = CATEGORIES.map((c) => `<option value="${c.value}" ${it?.category === c.value ? "selected" : ""}>${c.icon} ${c.label}</option>`).join("");
+  const catOptions = CATEGORIES.map((c) => `<option value="${c.value}" ${it?.category === c.value ? "selected" : ""}>${c.label}</option>`).join("");
   const condOptions = ["good", "fair", "needs-repair"].map((c) => `<option value="${c}" ${(it?.condition ?? "good") === c ? "selected" : ""}>${c}</option>`).join("");
   const statusOptions = EQUIPMENT_STATUSES.map((s) => `<option value="${s.value}" ${(it?.status ?? "available") === s.value ? "selected" : ""}>${s.label}</option>`).join("");
   openModal(`

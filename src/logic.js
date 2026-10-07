@@ -4,12 +4,12 @@
  */
 
 export const CATEGORIES = [
-  { value: "camping", label: "Camping", icon: "⛺" },
-  { value: "sports",  label: "Sports",  icon: "🏀" },
-  { value: "av",      label: "A/V",     icon: "📽️" },
-  { value: "kitchen", label: "Kitchen", icon: "🍳" },
-  { value: "tools",   label: "Tools",   icon: "🛠️" },
-  { value: "other",   label: "Other",   icon: "📦" },
+  { value: "camping", label: "Camping", glyph: "compass" },
+  { value: "sports",  label: "Sports",  glyph: "ball" },
+  { value: "av",      label: "A/V",     glyph: "film" },
+  { value: "kitchen", label: "Kitchen", glyph: "chef-hat" },
+  { value: "tools",   label: "Tools",   glyph: "toolbox" },
+  { value: "other",   label: "Other",   glyph: "box" },
 ];
 
 export const EQUIPMENT_STATUSES = [
@@ -22,7 +22,7 @@ export const EQUIPMENT_STATUSES = [
 const CAT_BY_VALUE = new Map(CATEGORIES.map((c) => [c.value, c]));
 
 export function categoryMeta(v) {
-  return CAT_BY_VALUE.get(v) ?? { value: "other", label: "Other", icon: "📦" };
+  return CAT_BY_VALUE.get(v) ?? { value: "other", label: "Other", glyph: "box" };
 }
 
 /** The open (unreturned) checkout for an item, if any. */
