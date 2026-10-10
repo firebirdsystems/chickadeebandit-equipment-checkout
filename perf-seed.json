@@ -1,0 +1,338 @@
+{
+  "seed": [
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-60 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'), ?)",
+      "params": [
+        "pe-0",
+        "6-person tent #1",
+        "camping",
+        "TENT-001",
+        "good",
+        "checked_out",
+        "{{me}}",
+        "Rainfly and stakes in the bag."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-59 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-11 days'), ?)",
+      "params": [
+        "pe-1",
+        "6-person tent #2",
+        "camping",
+        "TENT-002",
+        "fair",
+        "available",
+        "{{me}}",
+        "Small patch on the floor."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-58 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-10 days'))",
+      "params": [
+        "pe-2",
+        "Two-burner camp stove",
+        "camping",
+        "STOVE-01",
+        "good",
+        "checked_out",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-57 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-9 days'), ?)",
+      "params": [
+        "pe-3",
+        "Portable PA speaker",
+        "av",
+        "AV-014",
+        "good",
+        "checked_out",
+        "{{me}}",
+        "Charger is in the side pocket."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-56 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'), ?)",
+      "params": [
+        "pe-4",
+        "Projector and screen",
+        "av",
+        "AV-009",
+        "good",
+        "available",
+        "{{me}}",
+        "HDMI cable taped inside the case."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-55 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'))",
+      "params": [
+        "pe-5",
+        "Folding tables (set of 4)",
+        "other",
+        "TBL-SET-A",
+        "good",
+        "available",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-54 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-6 days'), ?)",
+      "params": [
+        "pe-6",
+        "Soccer goal set",
+        "sports",
+        "SPT-021",
+        "fair",
+        "available",
+        "{{me}}",
+        "One net has a tear."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-53 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-5 days'), ?)",
+      "params": [
+        "pe-7",
+        "Pop-up canopy 10x10",
+        "camping",
+        "CAN-003",
+        "needs-repair",
+        "repair",
+        "{{me}}",
+        "Bent leg, waiting on a replacement part."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-52 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), ?)",
+      "params": [
+        "pe-8",
+        "Cordless drill kit",
+        "tools",
+        "TL-007",
+        "good",
+        "checked_out",
+        "{{me}}",
+        "Two batteries."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-51 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-3 days'))",
+      "params": [
+        "pe-9",
+        "30-cup coffee urn",
+        "kitchen",
+        "KIT-002",
+        "good",
+        "available",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-50 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'), ?)",
+      "params": [
+        "pe-10",
+        "Cornhole boards",
+        "sports",
+        "SPT-030",
+        "good",
+        "available",
+        "{{me}}",
+        "Eight bags included."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, created_by, created_at, updated_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-49 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days'), ?)",
+      "params": [
+        "pe-11",
+        "Old overhead projector",
+        "av",
+        "AV-001",
+        "fair",
+        "retired",
+        "{{me}}",
+        "Kept for parts."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','+3 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), NULL, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), ?)",
+      "params": [
+        "pc-o0",
+        "pe-0",
+        "{{me}}",
+        "{{me}}",
+        "Scout campout this weekend."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','+3 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), NULL, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'))",
+      "params": [
+        "pc-o1",
+        "pe-2",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-2 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-9 days'), NULL, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-9 days'), ?)",
+      "params": [
+        "pc-o2",
+        "pe-3",
+        "{{me}}",
+        "{{me}}",
+        "Borrowed for the block party."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','+0 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'), NULL, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'), ?)",
+      "params": [
+        "pc-o3",
+        "pe-8",
+        "{{me}}",
+        "{{me}}",
+        "Building the garden beds."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-26 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-26 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'), ?)",
+      "params": [
+        "pc-h0",
+        "pe-0",
+        "{{me}}",
+        "{{me}}",
+        "Fall campout."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-26 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-26 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'))",
+      "params": [
+        "pc-h1",
+        "pe-1",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-15 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-15 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days'))",
+      "params": [
+        "pc-h2",
+        "pe-1",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-26 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-26 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'))",
+      "params": [
+        "pc-h3",
+        "pe-2",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-24 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-24 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'), ?)",
+      "params": [
+        "pc-h4",
+        "pe-3",
+        "{{me}}",
+        "{{me}}",
+        "Movie night."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-24 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-24 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-25 days'), ?)",
+      "params": [
+        "pc-h5",
+        "pe-4",
+        "{{me}}",
+        "{{me}}",
+        "Movie night."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-11 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-11 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'))",
+      "params": [
+        "pc-h6",
+        "pe-4",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-19 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-21 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-21 days'), ?)",
+      "params": [
+        "pc-h7",
+        "pe-5",
+        "{{me}}",
+        "{{me}}",
+        "Bake sale."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-9 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-16 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-9 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-16 days'))",
+      "params": [
+        "pc-h8",
+        "pe-6",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-17 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-20 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-17 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-20 days'))",
+      "params": [
+        "pc-h9",
+        "pe-8",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-19 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-21 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-19 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-21 days'), ?)",
+      "params": [
+        "pc-h10",
+        "pe-9",
+        "{{me}}",
+        "{{me}}",
+        "Bake sale."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-13 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-14 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-13 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-14 days'))",
+      "params": [
+        "pc-h11",
+        "pe-10",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-33 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-35 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-33 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-35 days'), ?)",
+      "params": [
+        "pc-h12",
+        "pe-7",
+        "{{me}}",
+        "{{me}}",
+        "Came back with a bent leg."
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at) VALUES (?, ?, ?, date('now','-6 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-6 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'))",
+      "params": [
+        "pc-h13",
+        "pe-5",
+        "{{me}}",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, recorded_by, created_at, notes) VALUES (?, ?, ?, date('now','-6 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-6 days','+2 hours'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'), ?)",
+      "params": [
+        "pc-h14",
+        "pe-9",
+        "{{me}}",
+        "{{me}}",
+        "Parent meeting."
+      ]
+    }
+  ]
+}
