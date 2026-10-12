@@ -85,6 +85,64 @@
           "expect": { "status": 200, "rowCount": 3 }
         }
       ]
+    },
+    {
+      "name": "when two leaders check out the same item, the first claim wins and the second changes nothing; a checkout is returned once",
+      "members": { "first": "adult", "second": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_equipment_checkout__equipment (id, name, created_by, created_at, updated_at) VALUES ('eq1', 'Projector', ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+          "params": ["{{first}}"]
+        },
+        {
+          "action": "db",
+          "as": "first",
+          "sql": "UPDATE app_equipment_checkout__equipment SET status='checked_out', updated_at=? WHERE id=? AND updated_at=? AND status IN ('available','checked_out') RETURNING id",
+          "params": ["2026-01-02T00:00:00Z", "eq1", "2026-01-01T00:00:00Z"],
+          "expect": { "status": 200, "rowCount": 1 }
+        },
+        {
+          "action": "db",
+          "as": "first",
+          "sql": "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at) VALUES (?,?,?,?,?,NULL,?,?,?)",
+          "params": ["c1", "eq1", "{{first}}", "2026-01-05", "2026-01-02T00:00:00Z", "", "{{first}}", "2026-01-02T00:00:00Z"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "second",
+          "sql": "UPDATE app_equipment_checkout__equipment SET status='checked_out', updated_at=? WHERE id=? AND updated_at=? AND status IN ('available','checked_out') RETURNING id",
+          "params": ["2026-01-02T00:00:01Z", "eq1", "2026-01-01T00:00:00Z"],
+          "expect": { "status": 200, "rowCount": 0 }
+        },
+        {
+          "action": "db",
+          "as": "second",
+          "sql": "UPDATE app_equipment_checkout__checkouts SET returned_at=? WHERE id=? AND returned_at IS NULL RETURNING id",
+          "params": ["2026-01-03T00:00:00Z", "c1"],
+          "expect": { "status": 200, "rowCount": 1 }
+        },
+        {
+          "action": "db",
+          "as": "first",
+          "sql": "UPDATE app_equipment_checkout__checkouts SET returned_at=? WHERE id=? AND returned_at IS NULL RETURNING id",
+          "params": ["2026-01-04T00:00:00Z", "c1"],
+          "expect": { "status": 200, "rowCount": 0 }
+        },
+        {
+          "action": "db",
+          "as": "first",
+          "sql": "SELECT status, updated_at FROM app_equipment_checkout__equipment WHERE id = 'eq1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "status": "checked_out", "updated_at": "2026-01-02T00:00:00Z" }] }
+        },
+        {
+          "action": "db",
+          "as": "first",
+          "sql": "SELECT returned_at FROM app_equipment_checkout__checkouts WHERE id = 'c1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "returned_at": "2026-01-03T00:00:00Z" }] }
+        }
+      ]
     }
   ]
 }

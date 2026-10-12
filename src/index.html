@@ -73,6 +73,8 @@
     .history { margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 6px; }
     .history-line { font-size: .8rem; color: var(--muted); padding: 2px 0; }
     .empty { color: var(--muted); text-align: center; padding: 30px 16px; }
+    .load-error { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--hub-tint-danger, #fee2e2); color: var(--hub-tint-danger-fg, #b91c1c); font-size: 0.9rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    .load-error-retry { background: none; border: 1px solid currentColor; border-radius: 8px; padding: 5px 10px; font: inherit; font-weight: 600; color: inherit; cursor: pointer; flex-shrink: 0; }
     .error { background: var(--red-soft); color: var(--red); padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; font-size: .86rem; }
     input, select, textarea {
       width: 100%; border: 1.5px solid var(--border-mid); border-radius: 8px;
@@ -165,13 +167,33 @@ async function db(sql, params = []) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Couldn’t reach the hub. Try again.");
   return json;
+}
+
+/** Several statements in one transaction: all of them land or none does. A
+ *  statement marked `requireChanges` that changes no row rolls the whole batch
+ *  back, which the hub answers with 409 (carried on the error as `status`). */
+async function dbBatch(statements) {
+  if (!DB) return statements.map(() => ({ rows: [], changed: 0 }));
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ statements }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object" || json.error || !Array.isArray(json.results)) {
+    const err = new Error(json?.error || "Couldn’t reach the hub. Try again.");
+    err.status = res.status;
+    throw err;
+  }
+  return json.results;
 }
 
 /* ── Loading ───────────────────────────────────────────────────────────────── */
 async function loadMembers() {
+  let unread = null;
   if (!CONTEXT) {
     members = [
       { id: "demo-1", name: "Alex (quartermaster)", role: "adult" },
@@ -179,13 +201,17 @@ async function loadMembers() {
       { id: "demo-3", name: "Casey", role: "child" },
     ];
   } else {
+    // A member list that could not be read is a failed load, not a household with nobody in it.
     try {
       const res = await fetch(`${CONTEXT}?keys=family.members`);
-      members = ((await res.json())["family.members"]) ?? [];
-    } catch { members = []; }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || typeof data !== "object" || data.error || (Array.isArray(data.$errors) && data.$errors.includes("family.members"))) throw new Error("Couldn’t reach the hub. Try again.");
+      members = data["family.members"] ?? [];
+    } catch (e) { unread = e; }
   }
   memberMap = new Map(members.map((m) => [m.id, m]));
   me = HUB_MEMBER ?? members[0] ?? { id: "guest", name: "Guest", role: "adult" };
+  if (unread) throw unread;
 }
 
 async function loadData() {
@@ -208,12 +234,16 @@ async function loadData() {
   checkouts = c.rows ?? [];
 }
 
+// The first load failed: the gear closet is unknown, not empty.
+let loadFailed = false;
+
 async function refresh() {
   error = "";
   try {
     await Promise.all([loadMembers(), loadData()]);
-    render();
-  } catch (e) { error = e.message; render(); }
+    loadFailed = false;
+  } catch { loadFailed = true; }
+  render();
 }
 
 function showError(msg) { error = msg; render(); }
@@ -227,8 +257,15 @@ async function saveEquipment(fields, existingId) {
     if (idx !== -1) equipment[idx] = { ...equipment[idx], ...fields, updated_at: now };
     closeModal(); render();
     try {
-      await db("UPDATE app_equipment_checkout__equipment SET name=?, category=?, identifier=?, condition=?, status=?, notes=?, updated_at=? WHERE id=?",
+      const res = await db("UPDATE app_equipment_checkout__equipment SET name=?, category=?, identifier=?, condition=?, status=?, notes=?, updated_at=? WHERE id=?",
         [fields.name, fields.category, fields.identifier, fields.condition, fields.status, fields.notes, now, existingId]);
+      // A save that changes no row still answers 200: the item was deleted
+      // meanwhile. Put the list back as the hub has it and say so.
+      if (res.changed === 0) {
+        if (idx !== -1 && prev) equipment[idx] = prev;
+        await loadData().catch(() => {});
+        showError("This item is no longer in the gear closet, so the change was not saved.");
+      }
     } catch (e) { if (idx !== -1 && prev) equipment[idx] = prev; showError(e.message); }
   } else {
     const row = { id: crypto.randomUUID(), ...fields, created_by: me.id, created_at: now, updated_at: now };
@@ -256,14 +293,29 @@ async function checkOut(item, memberId, dueDate, notes) {
   const now = nowIso();
   const row = { id: crypto.randomUUID(), equipment_id: item.id, member_id: memberId, due_date: dueDate, checked_out_at: now, returned_at: null, notes, recorded_by: me.id, created_at: now };
   const idx = equipment.findIndex((e) => e.id === item.id);
-  const prevStatus = equipment[idx]?.status;
+  const prevItem = equipment[idx];
   checkouts = [row, ...checkouts];
-  if (idx !== -1) equipment[idx] = { ...equipment[idx], status: "checked_out" };
+  if (idx !== -1) equipment[idx] = { ...equipment[idx], status: "checked_out", updated_at: now };
   closeModal(); render();
   try {
-    await db("INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at) VALUES (?,?,?,?,?,NULL,?,?,?)",
-      [row.id, row.equipment_id, row.member_id, row.due_date, row.checked_out_at, row.notes, row.recorded_by, row.created_at]);
-    await db("UPDATE app_equipment_checkout__equipment SET status='checked_out', updated_at=? WHERE id=?", [now, item.id]).catch(() => {});
+    // First one wins. The claim changes the item only if it is still exactly
+    // as this page read it: every checkout, return and edit stamps
+    // `updated_at`, so a second claim made from the same reading matches
+    // nothing. (The stamp, not `status = 'available'`, because the page offers
+    // a checkout by effectiveStatus — no open checkout — and the hub does not
+    // allow that test as a subquery here.) A claim that changes nothing rolls
+    // the batch back, so the checkout is never recorded without it.
+    await dbBatch([
+      {
+        sql: "UPDATE app_equipment_checkout__equipment SET status='checked_out', updated_at=? WHERE id=? AND updated_at=? AND status IN ('available','checked_out')",
+        params: [now, item.id, item.updated_at],
+        requireChanges: true,
+      },
+      {
+        sql: "INSERT INTO app_equipment_checkout__checkouts (id, equipment_id, member_id, due_date, checked_out_at, returned_at, notes, recorded_by, created_at) VALUES (?,?,?,?,?,NULL,?,?,?)",
+        params: [row.id, row.equipment_id, row.member_id, row.due_date, row.checked_out_at, row.notes, row.recorded_by, row.created_at],
+      },
+    ]);
     await publishEvent("equipment.checked_out", row.id, {
       equipment_id: row.equipment_id,
       member_id: row.member_id,
@@ -271,8 +323,12 @@ async function checkOut(item, memberId, dueDate, notes) {
     });
   } catch (e) {
     checkouts = checkouts.filter((c) => c.id !== row.id);
-    if (idx !== -1) equipment[idx] = { ...equipment[idx], status: prevStatus };
-    showError(e.message);
+    if (idx !== -1) equipment[idx] = prevItem;
+    if (e.status === 409) {
+      // Show the item as it is now, and who has it.
+      await loadData().catch(() => {});
+      showError("Someone else changed this item first, so nothing was checked out. Check who has it now.");
+    } else showError(e.message);
   }
 }
 
@@ -281,13 +337,25 @@ async function markReturned(checkout) {
   const cIdx = checkouts.findIndex((c) => c.id === checkout.id);
   const eIdx = equipment.findIndex((e) => e.id === checkout.equipment_id);
   const prevC = cIdx !== -1 ? { ...checkouts[cIdx] } : null;
-  const prevStatus = equipment[eIdx]?.status;
+  const prevItem = equipment[eIdx];
   if (cIdx !== -1) checkouts[cIdx] = { ...checkouts[cIdx], returned_at: now };
-  if (eIdx !== -1) equipment[eIdx] = { ...equipment[eIdx], status: "available" };
+  if (eIdx !== -1 && prevItem.status === "checked_out") equipment[eIdx] = { ...prevItem, status: "available", updated_at: now };
   render();
   try {
-    await db("UPDATE app_equipment_checkout__checkouts SET returned_at=? WHERE id=?", [now, checkout.id]);
-    await db("UPDATE app_equipment_checkout__equipment SET status='available', updated_at=? WHERE id=?", [now, checkout.equipment_id]).catch(() => {});
+    // The return and the item's status land together. Only a checkout still
+    // out can be returned, and an item moved to repair or retired meanwhile
+    // keeps that status.
+    await dbBatch([
+      {
+        sql: "UPDATE app_equipment_checkout__checkouts SET returned_at=? WHERE id=? AND returned_at IS NULL",
+        params: [now, checkout.id],
+        requireChanges: true,
+      },
+      {
+        sql: "UPDATE app_equipment_checkout__equipment SET status='available', updated_at=? WHERE id=? AND status='checked_out'",
+        params: [now, checkout.equipment_id],
+      },
+    ]);
     await publishEvent("equipment.returned", checkout.id, {
       equipment_id: checkout.equipment_id,
       member_id: checkout.member_id,
@@ -295,8 +363,11 @@ async function markReturned(checkout) {
     });
   } catch (e) {
     if (cIdx !== -1 && prevC) checkouts[cIdx] = prevC;
-    if (eIdx !== -1) equipment[eIdx] = { ...equipment[eIdx], status: prevStatus };
-    showError(e.message);
+    if (eIdx !== -1) equipment[eIdx] = prevItem;
+    if (e.status === 409) {
+      await loadData().catch(() => {});
+      showError("This was already returned.");
+    } else showError(e.message);
   }
 }
 
@@ -317,7 +388,7 @@ function renderItem(item) {
   const expanded = expandedId === item.id;
   const history = expanded ? historyFor(checkouts, item.id) : [];
   return `
-    <div class="row ${item.status === "retired" ? "dim" : ""}">
+    <div class="row ${item.status === "retired" ? "dim" : ""}" data-testid="equipment-row" data-equipment-id="${esc(item.id)}" data-equipment-status="${esc(effectiveStatus(item, checkouts))}">
       <div class="row-icon" aria-hidden="true">${glyph(cat.glyph)}</div>
       <div class="row-body">
         <div class="row-title">${esc(item.name)}${item.identifier ? ` <span class="muted tiny">#${esc(item.identifier)}</span>` : ""}</div>
@@ -340,10 +411,10 @@ function renderItem(item) {
         <span>
           <button class="edit-link" data-expand="${esc(item.id)}">${expanded ? "Hide" : "History"}</button>
           ${canManage() ? (open
-            ? `<button class="edit-link" data-return="${esc(open.id)}">Return</button>`
-            : effectiveStatus(item, checkouts) === "available" ? `<button class="edit-link" data-checkout="${esc(item.id)}">Check out</button>` : "")
+            ? `<button class="edit-link" data-testid="return-btn" data-equipment-id="${esc(item.id)}" data-return="${esc(open.id)}">Return</button>`
+            : effectiveStatus(item, checkouts) === "available" ? `<button class="edit-link" data-testid="checkout-btn" data-equipment-id="${esc(item.id)}" data-checkout="${esc(item.id)}">Check out</button>` : "")
           : ""}
-          ${canManage() ? `<button class="edit-link" data-edit="${esc(item.id)}">Edit</button>` : ""}
+          ${canManage() ? `<button class="edit-link" data-testid="edit-btn" data-equipment-id="${esc(item.id)}" data-edit="${esc(item.id)}">Edit</button>` : ""}
         </span>
       </div>
     </div>`;
@@ -352,6 +423,7 @@ function renderItem(item) {
 // Owns the filtering and the empty states, so the keystroke handler can refresh
 // the list without repeating how it is derived.
 function renderEquipmentList() {
+  if (loadFailed && !equipment.length) return "";
   const list = sortedEquipment(equipment, checkouts);
   const shown = searchQ ? list.filter((i) => searchMatch(searchQ, searchableFields(i))) : list;
   if (shown.length) return `<div class="stack">${shown.map(renderItem).join("")}</div>`;
@@ -378,9 +450,10 @@ function render() {
         <h1>${glyph("toolbox")} Equipment Checkout</h1>
         <p class="muted tiny">${equipment.length} item${equipment.length === 1 ? "" : "s"} · ${out.length} out${overdue.length ? ` · <span style="color:var(--red)">${overdue.length} overdue</span>` : ""}</p>
       </div>
-      ${canManage() ? `<button class="btn" data-add>+ Item</button>` : ""}
+      ${canManage() && !loadFailed ? `<button class="btn" data-add>+ Item</button>` : ""}
     </div>
-    ${error ? `<div class="error">${esc(error)}</div>` : ""}
+    ${loadFailed ? `<div class="load-error" data-testid="load-error" role="alert"><span>Couldn’t load the gear closet.</span> <button type="button" class="load-error-retry" data-testid="load-retry">Try again</button></div>` : ""}
+    ${error ? `<div class="error" data-testid="page-error">${esc(error)}</div>` : ""}
     ${list.length ? `<div class="search-row"><input id="search" class="search-input" type="search" placeholder="Search the gear closet…" aria-label="Search the gear closet" value="${esc(searchQ)}" /></div>` : ""}
     <div id="equipment-list">${renderEquipmentList()}</div>
     ${!canManage() && list.length ? `<p class="muted tiny" style="margin-top:10px">Leaders (adults) record checkouts and returns.</p>` : ""}
@@ -406,7 +479,7 @@ function openEquipmentEditor(existing) {
   openModal(`
     <h2>${it ? "Edit item" : "Add gear"}</h2>
     <form class="form" id="equipment-form">
-      <div class="field"><label for="g-name">Name</label><input id="g-name" data-autofocus value="${esc(it?.name ?? "")}" placeholder="6-person tent #1" required /></div>
+      <div class="field"><label for="g-name">Name</label><input id="g-name" data-testid="field-name" data-autofocus value="${esc(it?.name ?? "")}" placeholder="6-person tent #1" required /></div>
       <div class="grid2">
         <div class="field"><label for="g-cat">Category</label><select id="g-cat">${catOptions}</select></div>
         <div class="field"><label for="g-id">Asset tag / serial</label><input id="g-id" value="${esc(it?.identifier ?? "")}" /></div>
@@ -419,7 +492,7 @@ function openEquipmentEditor(existing) {
       <div class="modal-actions">
         ${it ? `<button type="button" class="btn btn-danger modal-left" data-delete="${esc(it.id)}">Delete</button>` : ""}
         <button type="button" class="btn btn-ghost" data-cancel>Cancel</button>
-        <button type="submit" class="btn">${it ? "Save" : "Add"}</button>
+        <button type="submit" class="btn" data-testid="save-equipment">${it ? "Save" : "Add"}</button>
       </div>
     </form>`);
   modalEl.querySelector("[data-autofocus]")?.focus();
@@ -444,13 +517,13 @@ function openCheckoutEditor(item) {
   const memberOptions = members.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
   openModal(`
     <h2>Check out: ${esc(item.name)}</h2>
-    <form class="form" id="checkout-form">
-      <div class="field"><label for="c-member">To</label><select id="c-member">${memberOptions}</select></div>
+    <form class="form" id="checkout-form" data-testid="checkout-form">
+      <div class="field"><label for="c-member">To</label><select id="c-member" data-testid="field-member">${memberOptions}</select></div>
       <div class="field"><label for="c-due">Due back <span class="muted" style="text-transform:none">(optional)</span></label><input id="c-due" type="date" /></div>
       <div class="field"><label for="c-notes">Notes</label><textarea id="c-notes"></textarea></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-cancel>Cancel</button>
-        <button type="submit" class="btn">Check out</button>
+        <button type="submit" class="btn" data-testid="checkout-submit">Check out</button>
       </div>
     </form>`);
   modalEl.querySelector("#checkout-form").addEventListener("submit", (e) => {
@@ -468,6 +541,7 @@ function openCheckoutEditor(item) {
 document.addEventListener("click", (e) => {
   const t = e.target.closest("button");
   if (!t) return;
+  if (t.dataset.testid === "load-retry") { refresh(); return; }
   if (t.hasAttribute("data-add")) { openEquipmentEditor(null); return; }
   if (t.hasAttribute("data-edit")) { openEquipmentEditor(equipment.find((x) => x.id === t.getAttribute("data-edit"))); return; }
   if (t.hasAttribute("data-cancel")) { closeModal(); return; }
