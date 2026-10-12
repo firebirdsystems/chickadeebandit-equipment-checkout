@@ -248,33 +248,50 @@ async function refresh() {
 
 function showError(msg) { error = msg; render(); }
 
+// A save the hub refused: the form stays open as typed, says so in its own
+// error line, and its button works again.
+function saveFailed(e) {
+  if (e) console.error(e);
+  const line = modalEl?.querySelector("[data-form-error]");
+  if (!line) { showError("Couldn’t save — try again."); return; }
+  line.textContent = "Couldn’t save — try again.";
+  line.hidden = false;
+  const btn = modalEl.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label ?? btn.textContent; }
+}
+
 /* ── Mutations ─────────────────────────────────────────────────────────────── */
 async function saveEquipment(fields, existingId) {
   const now = nowIso();
   if (existingId) {
-    const idx = equipment.findIndex((e) => e.id === existingId);
-    const prev = idx !== -1 ? equipment[idx] : null;
-    if (idx !== -1) equipment[idx] = { ...equipment[idx], ...fields, updated_at: now };
-    closeModal(); render();
+    // The form stays open until the hub has answered: a refused save leaves
+    // what was typed in place to send again (see saveFailed).
+    let res;
     try {
-      const res = await db("UPDATE app_equipment_checkout__equipment SET name=?, category=?, identifier=?, condition=?, status=?, notes=?, updated_at=? WHERE id=?",
+      res = await db("UPDATE app_equipment_checkout__equipment SET name=?, category=?, identifier=?, condition=?, status=?, notes=?, updated_at=? WHERE id=?",
         [fields.name, fields.category, fields.identifier, fields.condition, fields.status, fields.notes, now, existingId]);
-      // A save that changes no row still answers 200: the item was deleted
-      // meanwhile. Put the list back as the hub has it and say so.
-      if (res.changed === 0) {
-        if (idx !== -1 && prev) equipment[idx] = prev;
-        await loadData().catch(() => {});
-        showError("This item is no longer in the gear closet, so the change was not saved.");
-      }
-    } catch (e) { if (idx !== -1 && prev) equipment[idx] = prev; showError(e.message); }
+    } catch (e) { saveFailed(e); return; }
+    // A save that changes no row still answers 200: the item was deleted
+    // meanwhile. Show the list as the hub has it and say so.
+    if (res.changed === 0) {
+      closeModal();
+      await loadData().catch(() => {});
+      showError("This item is no longer in the gear closet, so the change was not saved.");
+      return;
+    }
+    const idx = equipment.findIndex((e) => e.id === existingId);
+    if (idx !== -1) equipment[idx] = { ...equipment[idx], ...fields, updated_at: now };
+    error = "";
+    closeModal(); render();
   } else {
     const row = { id: crypto.randomUUID(), ...fields, created_by: me.id, created_at: now, updated_at: now };
-    equipment = [...equipment, row];
-    closeModal(); render();
     try {
       await db("INSERT INTO app_equipment_checkout__equipment (id, name, category, identifier, condition, status, notes, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
         [row.id, row.name, row.category, row.identifier, row.condition, row.status, row.notes, row.created_by, now, now]);
-    } catch (e) { equipment = equipment.filter((x) => x.id !== row.id); showError(e.message); }
+    } catch (e) { saveFailed(e); return; }
+    equipment = [...equipment, row];
+    error = "";
+    closeModal(); render();
   }
 }
 
@@ -286,17 +303,12 @@ async function deleteEquipment(id) {
   checkouts = checkouts.filter((c) => c.equipment_id !== id);
   closeModal(); render();
   try { await db("DELETE FROM app_equipment_checkout__equipment WHERE id=?", [id]); }
-  catch (e) { ({ equipment, checkouts } = prev); showError(e.message); }
+  catch (e) { ({ equipment, checkouts } = prev); console.error(e); showError("Couldn’t delete the item — try again."); }
 }
 
 async function checkOut(item, memberId, dueDate, notes) {
   const now = nowIso();
   const row = { id: crypto.randomUUID(), equipment_id: item.id, member_id: memberId, due_date: dueDate, checked_out_at: now, returned_at: null, notes, recorded_by: me.id, created_at: now };
-  const idx = equipment.findIndex((e) => e.id === item.id);
-  const prevItem = equipment[idx];
-  checkouts = [row, ...checkouts];
-  if (idx !== -1) equipment[idx] = { ...equipment[idx], status: "checked_out", updated_at: now };
-  closeModal(); render();
   try {
     // First one wins. The claim changes the item only if it is still exactly
     // as this page read it: every checkout, return and edit stamps
@@ -316,20 +328,26 @@ async function checkOut(item, memberId, dueDate, notes) {
         params: [row.id, row.equipment_id, row.member_id, row.due_date, row.checked_out_at, row.notes, row.recorded_by, row.created_at],
       },
     ]);
-    await publishEvent("equipment.checked_out", row.id, {
-      equipment_id: row.equipment_id,
-      member_id: row.member_id,
-      due_date: row.due_date,
-    });
   } catch (e) {
-    checkouts = checkouts.filter((c) => c.id !== row.id);
-    if (idx !== -1) equipment[idx] = prevItem;
     if (e.status === 409) {
       // Show the item as it is now, and who has it.
+      closeModal();
       await loadData().catch(() => {});
       showError("Someone else changed this item first, so nothing was checked out. Check who has it now.");
-    } else showError(e.message);
+    } else saveFailed(e); // the form stays open as typed
+    return;
   }
+  const idx = equipment.findIndex((e) => e.id === item.id);
+  checkouts = [row, ...checkouts];
+  if (idx !== -1) equipment[idx] = { ...equipment[idx], status: "checked_out", updated_at: now };
+  error = "";
+  closeModal(); render();
+  // Only once the checkout exists; a failed publish is not a failed save.
+  await publishEvent("equipment.checked_out", row.id, {
+    equipment_id: row.equipment_id,
+    member_id: row.member_id,
+    due_date: row.due_date,
+  });
 }
 
 async function markReturned(checkout) {
@@ -367,7 +385,7 @@ async function markReturned(checkout) {
     if (e.status === 409) {
       await loadData().catch(() => {});
       showError("This was already returned.");
-    } else showError(e.message);
+    } else { console.error(e); showError("Couldn’t mark it returned — try again."); }
   }
 }
 
@@ -489,6 +507,7 @@ function openEquipmentEditor(existing) {
         <div class="field"><label for="g-status">Status</label><select id="g-status">${statusOptions}</select></div>
       </div>
       <div class="field"><label for="g-notes">Notes</label><textarea id="g-notes">${esc(it?.notes ?? "")}</textarea></div>
+      <div class="error" data-form-error data-testid="modal-error" role="alert" hidden></div>
       <div class="modal-actions">
         ${it ? `<button type="button" class="btn btn-danger modal-left" data-delete="${esc(it.id)}">Delete</button>` : ""}
         <button type="button" class="btn btn-ghost" data-cancel>Cancel</button>
@@ -501,7 +520,7 @@ function openEquipmentEditor(existing) {
     const name = document.getElementById("g-name").value.trim();
     if (!name) { document.getElementById("g-name").focus(); return; }
     const btn = modalEl?.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+    if (btn) { btn.dataset.label = btn.textContent; btn.disabled = true; btn.textContent = "Saving…"; }
     saveEquipment({
       name,
       category: document.getElementById("g-cat").value,
@@ -509,7 +528,7 @@ function openEquipmentEditor(existing) {
       condition: document.getElementById("g-cond").value,
       status: document.getElementById("g-status").value,
       notes: document.getElementById("g-notes").value.trim(),
-    }, it?.id ?? null).catch((err) => showError(err.message));
+    }, it?.id ?? null).catch((err) => saveFailed(err));
   });
 }
 
@@ -521,6 +540,7 @@ function openCheckoutEditor(item) {
       <div class="field"><label for="c-member">To</label><select id="c-member" data-testid="field-member">${memberOptions}</select></div>
       <div class="field"><label for="c-due">Due back <span class="muted" style="text-transform:none">(optional)</span></label><input id="c-due" type="date" /></div>
       <div class="field"><label for="c-notes">Notes</label><textarea id="c-notes"></textarea></div>
+      <div class="error" data-form-error data-testid="modal-error" role="alert" hidden></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-cancel>Cancel</button>
         <button type="submit" class="btn" data-testid="checkout-submit">Check out</button>
@@ -531,9 +551,9 @@ function openCheckoutEditor(item) {
     const memberId = document.getElementById("c-member").value;
     if (!memberId) return;
     const btn = modalEl?.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.textContent = "Recording…"; }
+    if (btn) { btn.dataset.label = btn.textContent; btn.disabled = true; btn.textContent = "Recording…"; }
     checkOut(item, memberId, document.getElementById("c-due").value, document.getElementById("c-notes").value.trim())
-      .catch((err) => showError(err.message));
+      .catch((err) => saveFailed(err));
   });
 }
 
@@ -559,7 +579,7 @@ document.addEventListener("click", (e) => {
   }
   if (t.hasAttribute("data-return")) {
     const checkout = checkouts.find((c) => c.id === t.getAttribute("data-return"));
-    if (checkout) markReturned(checkout).catch((err) => showError(err.message));
+    if (checkout) markReturned(checkout).catch((err) => { console.error(err); showError("Couldn’t mark it returned — try again."); });
   }
 });
 
