@@ -108,9 +108,6 @@
     },
     "display": { "template": "badge", "count": "n", "label": "items overdue", "severity": "warn" }
   },
-  "resource_limits": {
-    "max_db_bytes": 52428800
-  },
   "ai_access": {
     "allowed": true,
     "mode": "read",
