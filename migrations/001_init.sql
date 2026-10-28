@@ -17,7 +17,7 @@
 -- overdue export; `status` (available|checked_out|repair|retired) is a hub
 -- built-in plaintext column. Names/identifiers/notes stay encrypted at rest.
 CREATE TABLE IF NOT EXISTS app_equipment_checkout__equipment (
-  id         TEXT PRIMARY KEY,
+  id         TEXT NOT NULL PRIMARY KEY,
   name       TEXT NOT NULL,                     -- "6-person tent #2"
   category   TEXT NOT NULL DEFAULT 'other',     -- camping|sports|av|kitchen|tools|other
   identifier TEXT NOT NULL DEFAULT '',          -- asset tag / serial
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS app_equipment_checkout__equipment (
 );
 
 CREATE TABLE IF NOT EXISTS app_equipment_checkout__checkouts (
-  id             TEXT PRIMARY KEY,
+  id             TEXT NOT NULL PRIMARY KEY,
   equipment_id   TEXT NOT NULL,
   member_id      TEXT NOT NULL,                 -- who has the item
   due_date       TEXT NOT NULL DEFAULT '',      -- ISO YYYY-MM-DD ('' = no due date)
